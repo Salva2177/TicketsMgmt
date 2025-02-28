@@ -100,10 +100,6 @@
       signOut(auth)
         .then(() => {
           alert('Sesión cerrada correctamente');
-          // Borrar credenciales de localStorage (si se usan)
-          localStorage.removeItem('email');
-          localStorage.removeItem('password');
-          // Redirigir a la página de inicio
           window.location.href = 'index.html';
         })
         .catch((error) => {
@@ -111,69 +107,119 @@
         });
     });
 
-    // Cargar Tickets para Administradores
-    const loadTickets = () => {
-      const q = query(collection(db, 'tickets'));
-      onSnapshot(q, (snapshot) => {
-        const ticketList = document.getElementById('adminTicketList').querySelector('tbody');
-        ticketList.innerHTML = ''; // Limpiar lista antes de cargar
+    // Inicializar gráficos
+    let openTicketsChart, responseTimeChart, categoryDistributionChart;
 
-        snapshot.forEach((doc) => {
-          const ticket = doc.data();
-          const row = `
-            <tr class="border-b">
-              <td class="p-2">${doc.id}</td>
-              <td class="p-2">${ticket.title}</td>
-              <td class="p-2">${ticket.description}</td>
-              <td class="p-2">
-                <select class="status-select p-1 border rounded" data-id="${doc.id}">
-                  <option value="Nuevo" ${ticket.status === 'Nuevo' ? 'selected' : ''}>Nuevo</option>
-                  <option value="En Progreso" ${ticket.status === 'En Progreso' ? 'selected' : ''}>En Progreso</option>
-                  <option value="Resuelto" ${ticket.status === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
-                </select>
-              </td>
-              <td class="p-2">
-                <select class="priority-select p-1 border rounded" data-id="${doc.id}">
-                  <option value="Baja" ${ticket.priority === 'Baja' ? 'selected' : ''}>Baja</option>
-                  <option value="Media" ${ticket.priority === 'Media' ? 'selected' : ''}>Media</option>
-                  <option value="Alta" ${ticket.priority === 'Alta' ? 'selected' : ''}>Alta</option>
-                </select>
-              </td>
-              <td class="p-2">${ticket.assigned_to || 'Sin asignar'}</td>
-              <td class="p-2">${new Date(ticket.created_at).toLocaleString()}</td>
-              <td class="p-2">
-                <button class="save-btn bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" data-id="${doc.id}">
-                  <i class="fas fa-save"></i> Guardar
-                </button>
-              </td>
-            </tr>
-          `;
-          ticketList.innerHTML += row;
-        });
+    const initCharts = () => {
+      // Gráfico de Tickets Abiertos
+      const openTicketsCtx = document.getElementById('openTicketsChart').getContext('2d');
+      openTicketsChart = new Chart(openTicketsCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Nuevo', 'En Progreso', 'Resuelto'],
+          datasets: [{
+            label: 'Tickets',
+            data: [0, 0, 0], // Datos iniciales
+            backgroundColor: ['#3b82f6', '#f59e0b', '#10b981'],
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+          },
+        }
+      });
 
-        // Agregar eventos a los botones de guardar
-        document.querySelectorAll('.save-btn').forEach((button) => {
-          button.addEventListener('click', async (e) => {
-            const ticketId = e.target.getAttribute('data-id');
-            const status = document.querySelector(`.status-select[data-id="${ticketId}"]`).value;
-            const priority = document.querySelector(`.priority-select[data-id="${ticketId}"]`).value;
+      // Gráfico de Tiempo Promedio de Respuesta
+      const responseTimeCtx = document.getElementById('responseTimeChart').getContext('2d');
+      responseTimeChart = new Chart(responseTimeCtx, {
+        type: 'line',
+        data: {
+          labels: [], // Fechas o IDs de tickets
+          datasets: [{
+            label: 'Tiempo de Respuesta (horas)',
+            data: [], // Datos iniciales
+            borderColor: '#3b82f6',
+            fill: false,
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+          },
+        }
+      });
 
-            try {
-              await updateDoc(doc(db, 'tickets', ticketId), {
-                status: status,
-                priority: priority,
-                updated_at: new Date().toISOString()
-              });
-              alert('Ticket actualizado correctamente');
-            } catch (error) {
-              alert(`Error al actualizar el ticket: ${error.message}`);
-            }
-          });
-        });
+      // Gráfico de Distribución por Categoría
+      const categoryDistributionCtx = document.getElementById('categoryDistributionChart').getContext('2d');
+      categoryDistributionChart = new Chart(categoryDistributionCtx, {
+        type: 'pie',
+        data: {
+          labels: ['Soporte Técnico', 'Facturación', 'Otros'],
+          datasets: [{
+            label: 'Tickets',
+            data: [0, 0, 0], // Datos iniciales
+            backgroundColor: ['#3b82f6', '#f59e0b', '#10b981'],
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+          },
+        }
       });
     };
 
-    // Verificar Autenticación y Cargar Tickets
+    // Actualizar gráficos con datos de Firestore
+    const updateCharts = (tickets) => {
+      // Tickets Abiertos
+      const openTickets = tickets.filter(ticket => ticket.status === 'Nuevo' || ticket.status === 'En Progreso').length;
+      const resolvedTickets = tickets.filter(ticket => ticket.status === 'Resuelto').length;
+      openTicketsChart.data.datasets[0].data = [openTickets, resolvedTickets, 0];
+      openTicketsChart.update();
+
+      // Tiempo Promedio de Respuesta
+      const responseTimes = tickets
+        .filter(ticket => ticket.status === 'Resuelto')
+        .map(ticket => {
+          const created = new Date(ticket.created_at);
+          const updated = new Date(ticket.updated_at);
+          return (updated - created) / (1000 * 60 * 60); // Diferencia en horas
+        });
+      const avgResponseTime = responseTimes.length > 0
+        ? (responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length).toFixed(2)
+        : 0;
+      responseTimeChart.data.labels = tickets.map(ticket => ticket.title);
+      responseTimeChart.data.datasets[0].data = responseTimes;
+      responseTimeChart.update();
+
+      // Distribución por Categoría
+      const categories = {
+        'Soporte Técnico': tickets.filter(ticket => ticket.category === 'Soporte Técnico').length,
+        'Facturación': tickets.filter(ticket => ticket.category === 'Facturación').length,
+        'Otros': tickets.filter(ticket => ticket.category === 'Otros').length,
+      };
+      categoryDistributionChart.data.datasets[0].data = Object.values(categories);
+      categoryDistributionChart.update();
+    };
+
+    // Cargar Tickets y Actualizar Gráficos
+    const loadTickets = () => {
+      const q = query(collection(db, 'tickets'));
+      onSnapshot(q, (snapshot) => {
+        const tickets = [];
+        snapshot.forEach((doc) => {
+          tickets.push({ id: doc.id, ...doc.data() });
+        });
+        updateCharts(tickets);
+      });
+    };
+
+    // Inicializar la página
+    initCharts();
     auth.onAuthStateChanged((user) => {
       if (!user) {
         window.location.href = 'index.html';
