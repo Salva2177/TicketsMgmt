@@ -92,10 +92,12 @@
     logoutBtn.addEventListener('click', () => {
       signOut(auth)
         .then(() => {
+          console.log('Sesión cerrada correctamente.'); // Depuración
           alert('Sesión cerrada correctamente');
           window.location.href = 'index.html';
         })
         .catch((error) => {
+          console.error('Error al cerrar sesión:', error); // Depuración
           alert(`Error al cerrar sesión: ${error.message}`);
         });
     });
@@ -124,8 +126,10 @@
         const knowledgeList = document.getElementById('knowledgeList');
         knowledgeList.innerHTML = ''; // Limpiar lista antes de cargar
 
+        console.log('Número de artículos cargados:', snapshot.size); // Depuración
         snapshot.forEach((doc) => {
           const article = doc.data();
+          console.log('Artículo cargado:', article); // Depuración
           const card = `
             <div class="bg-white p-6 rounded-lg shadow-md">
               <h3 class="text-xl font-bold mb-2">${article.title}</h3>
@@ -146,6 +150,8 @@
       const content = document.getElementById('articleContent').value;
       const category = document.getElementById('articleCategory').value;
 
+      console.log('Datos del artículo:', { title, content, category }); // Depuración
+
       try {
         await addDoc(collection(db, 'knowledge_base'), {
           title: title,
@@ -153,9 +159,11 @@
           category: category,
           created_at: new Date().toISOString()
         });
+        console.log('Artículo agregado correctamente.'); // Depuración
         alert('Artículo agregado correctamente');
         addArticleForm.reset();
       } catch (error) {
+        console.error('Error al agregar el artículo:', error); // Depuración
         alert(`Error al agregar el artículo: ${error.message}`);
       }
     });
@@ -166,18 +174,23 @@
         const userDoc = await getDoc(doc(db, 'users', uid));
         console.log('Datos del usuario:', userDoc.data()); // Depuración
         if (userDoc.exists() && userDoc.data().role === 'admin') {
+          console.log('El usuario es administrador.'); // Depuración
           document.getElementById('addArticleSection').classList.remove('hidden');
+        } else {
+          console.log('El usuario no es administrador.'); // Depuración
         }
       } catch (error) {
-        console.error('Error al verificar el rol del usuario:', error);
+        console.error('Error al verificar el rol del usuario:', error); // Depuración
       }
     };
 
     // Cargar Artículos al Iniciar la Página
     auth.onAuthStateChanged((user) => {
       if (!user) {
+        console.log('Usuario no autenticado. Redirigiendo a index.html.'); // Depuración
         window.location.href = 'index.html';
       } else {
+        console.log('Usuario autenticado:', user); // Depuración
         loadKnowledgeBase();
         checkUserRole(user.uid); // Verificar el rol del usuario
       }
@@ -188,6 +201,7 @@
     searchButton.addEventListener('click', () => {
       const searchTerm = document.getElementById('searchInput').value;
       const category = document.getElementById('categoryFilter').value;
+      console.log('Buscando artículos con término:', searchTerm, 'y categoría:', category); // Depuración
       loadKnowledgeBase(searchTerm, category);
     });
   </script>
