@@ -65,7 +65,7 @@
     // Importar funciones de Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
     import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, query, where, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
 
     // Configuración de Firebase
     const firebaseConfig = {
@@ -151,28 +151,12 @@
       });
     };
 
-    // Verificar Autenticación y Rol al Cargar la Página
-    auth.onAuthStateChanged(async (user) => {
+    // Verificar Autenticación y Cargar Tickets
+    auth.onAuthStateChanged((user) => {
       if (!user) {
-        window.location.href = 'index.html'; // Redirigir si no hay usuario autenticado
+        window.location.href = 'index.html';
       } else {
-        // Obtener el rol del usuario desde Firestore
-        const q = query(collection(db, 'users'), where('uid', '==', user.uid));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const userData = querySnapshot.docs[0].data();
-          const role = userData.role; // Obtener el rol del usuario
-
-          // Redirigir si el usuario no es cliente
-          if (role !== 'cliente') {
-            window.location.href = 'admin.html';
-          } else {
-            loadTickets(); // Cargar tickets si es cliente
-          }
-        } else {
-          alert('No se encontró información del usuario.');
-        }
+        loadTickets();
       }
     });
   </script>
