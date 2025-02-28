@@ -176,9 +176,10 @@
     // Actualizar gráficos con datos de Firestore
     const updateCharts = (tickets) => {
       // Tickets Abiertos
-      const openTickets = tickets.filter(ticket => ticket.status === 'Nuevo' || ticket.status === 'En Progreso').length;
+      const newTickets = tickets.filter(ticket => ticket.status === 'Nuevo').length;
+      const inProgressTickets = tickets.filter(ticket => ticket.status === 'En Progreso').length;
       const resolvedTickets = tickets.filter(ticket => ticket.status === 'Resuelto').length;
-      openTicketsChart.data.datasets[0].data = [openTickets, resolvedTickets, 0];
+      openTicketsChart.data.datasets[0].data = [newTickets, inProgressTickets, resolvedTickets];
       openTicketsChart.update();
 
       // Tiempo Promedio de Respuesta
