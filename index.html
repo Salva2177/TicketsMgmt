@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar Sesión - Gestión de Tickets</title>
+  <!-- Tailwind CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- FontAwesome CDN -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+  <!-- Menú de Navegación -->
+  <nav class="bg-blue-600 p-4 text-white">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold">Gestión de Tickets</h1>
+      <div>
+        <a href="#" id="loginLink" class="px-4 py-2 rounded hover:bg-blue-700">Iniciar Sesión</a>
+        <a href="#" id="registerLink" class="px-4 py-2 rounded hover:bg-blue-700">Registrarse</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido Principal -->
+  <div class="flex items-center justify-center h-screen">
+    <!-- Formulario de Inicio de Sesión -->
+    <div id="loginForm" class="bg-white p-8 rounded-lg shadow-md w-96">
+      <h1 class="text-2xl font-bold mb-6 text-center">Iniciar Sesión</h1>
+      <form class="space-y-4">
+        <input type="email" id="email" placeholder="Email" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <input type="password" id="password" placeholder="Contraseña" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+          <i class="fas fa-sign-in-alt"></i> Iniciar Sesión
+        </button>
+      </form>
+      <p class="mt-4 text-center">¿No tienes cuenta? <a href="#" id="showRegister" class="text-blue-500">Regístrate aquí</a></p>
+    </div>
+
+    <!-- Formulario de Registro (oculto inicialmente) -->
+    <div id="registerForm" class="bg-white p-8 rounded-lg shadow-md w-96 hidden">
+      <h1 class="text-2xl font-bold mb-6 text-center">Registrarse</h1>
+      <form class="space-y-4">
+        <input type="email" id="regEmail" placeholder="Email" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <input type="password" id="regPassword" placeholder="Contraseña" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select id="regRole" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="cliente">Cliente</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <button type="submit" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">
+          <i class="fas fa-user-plus"></i> Registrarse
+        </button>
+      </form>
+      <p class="mt-4 text-center">¿Ya tienes cuenta? <a href="#" id="showLogin" class="text-blue-500">Inicia Sesión</a></p>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Importar funciones de Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBNXwzm9kMqkteMCiGUrHqm32U07yvDCBc",
+      authDomain: "sistema-de-tickets-61267.firebaseapp.com",
+      projectId: "sistema-de-tickets-61267",
+      storageBucket: "sistema-de-tickets-61267.appspot.com",
+      messagingSenderId: "547373785649",
+      appId: "1:547373785649:web:92839bcbed9e20fd17eb10",
+      measurementId: "G-FLD23C4M46"
+    };
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Lógica de Inicio de Sesión
+    const loginForm = document.getElementById('loginForm').querySelector('form');
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          alert(`Bienvenido, ${user.email}`);
+          // Redirigir según el rol (cliente o admin)
+          window.location.href = user.uid.startsWith('admin') ? 'admin.html' : 'client.html';
+        })
+        .catch((error) => {
+          alert(`Error: ${error.message}`);
+        });
+    });
+
+    // Lógica de Registro
+    const registerForm = document.getElementById('registerForm').querySelector('form');
+    registerForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPassword').value;
+      const role = document.getElementById('regRole').value;
+
+      createUserWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          alert(`Usuario registrado: ${user.email}`);
+          // Redirigir según el rol
+          window.location.href = role === 'admin' ? 'admin.html' : 'client.html';
+        })
+        .catch((error) => {
+          alert(`Error: ${error.message}`);
+        });
+    });
+
+    // Alternar entre Inicio de Sesión y Registro
+    document.getElementById('showRegister').addEventListener('click', () => {
+      document.getElementById('loginForm').classList.add('hidden');
+      document.getElementById('registerForm').classList.remove('hidden');
+    });
+
+    document.getElementById('showLogin').addEventListener('click', () => {
+      document.getElementById('registerForm').classList.add('hidden');
+      document.getElementById('loginForm').classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>
