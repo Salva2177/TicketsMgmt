@@ -1,1 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Gestión de Tickets</title>
+  <!-- Tailwind CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- FontAwesome CDN -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+  <!-- Menú de Navegación -->
+  <nav class="bg-blue-600 p-4 text-white">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold">Gestión de Tickets</h1>
+      <button id="logoutBtn" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600">
+        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+      </button>
+    </div>
+  </nav>
 
+  <!-- Contenido Principal -->
+  <div class="container mx-auto p-4">
+    <!-- Dashboard -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-bold mb-4">Dashboard</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Gráfico de Tickets Abiertos -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h3 class="text-lg font-bold mb-2">Tickets Abiertos</h3>
+          <canvas id="openTicketsChart"></canvas>
+        </div>
+        <!-- Gráfico de Tiempo Promedio de Respuesta -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h3 class="text-lg font-bold mb-2">Tiempo Promedio de Respuesta</h3>
+          <canvas id="responseTimeChart"></canvas>
+        </div>
+        <!-- Gráfico de Distribución por Categoría -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h3 class="text-lg font-bold mb-2">Distribución por Categoría</h3>
+          <canvas id="categoryDistributionChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gestión de Tickets -->
+    <section>
+      <h2 class="text-2xl font-bold mb-4">Gestión de Tickets</h2>
+      <div class="bg-white p-6 rounded-lg shadow-md">
+        <table id="adminTicketList" class="w-full text-left">
+          <thead>
+            <tr class="border-b">
+              <th class="p-2">ID</th>
+              <th class="p-2">Título</th>
+              <th class="p-2">Descripción</th>
+              <th class="p-2">Estado</th>
+              <th class="p-2">Prioridad</th>
+              <th class="p-2">Asignado a</th>
+              <th class="p-2">Fecha de Creación</th>
+              <th class="p-2">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Tickets cargados dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Importar funciones de Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+    import { getFirestore, collection, query, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBNXwzm9kMqkteMCiGUrHqm32U07yvDCBc",
+      authDomain: "sistema-de-tickets-61267.firebaseapp.com",
+      projectId: "sistema-de-tickets-61267",
+      storageBucket: "sistema-de-tickets-61267.appspot.com",
+      messagingSenderId: "547373785649",
+      appId: "1:547373785649:web:92839bcbed9e20fd17eb10",
+      measurementId: "G-FLD23C4M46"
+    };
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Cerrar Sesión
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      signOut(auth)
+        .then(() => {
+          alert('Sesión cerrada correctamente');
+          window.location.href = 'index.html';
+        })
+        .catch((error) => {
+          alert(`Error al cerrar sesión: ${error.message}`);
+        });
+    });
+
+    // Cargar Tickets para Administradores
+    const loadTickets = () => {
+      const q = query(collection(db, 'tickets'));
+      onSnapshot(q, (snapshot) => {
+        const ticketList = document.getElementById('adminTicketList').querySelector('tbody');
+        ticketList.innerHTML = ''; // Limpiar lista antes de cargar
+
+        snapshot.forEach((doc) => {
+          const ticket = doc.data();
+          const row = `
+            <tr class="border-b">
+              <td class="p-2">${doc.id}</td>
+              <td class="p-2">${ticket.title}</td>
+              <td class="p-2">${ticket.description}</td>
+              <td class="p-2">
+                <select class="status-select p-1 border rounded" data-id="${doc.id}">
+                  <option value="Nuevo" ${ticket.status === 'Nuevo' ? 'selected' : ''}>Nuevo</option>
+                  <option value="En Progreso" ${ticket.status === 'En Progreso' ? 'selected' : ''}>En Progreso</option>
+                  <option value="Resuelto" ${ticket.status === 'Resuelto' ? 'selected' : ''}>Resuelto</option>
+                </select>
+              </td>
+              <td class="p-2">
+                <select class="priority-select p-1 border rounded" data-id="${doc.id}">
+                  <option value="Baja" ${ticket.priority === 'Baja' ? 'selected' : ''}>Baja</option>
+                  <option value="Media" ${ticket.priority === 'Media' ? 'selected' : ''}>Media</option>
+                  <option value="Alta" ${ticket.priority === 'Alta' ? 'selected' : ''}>Alta</option>
+                </select>
+              </td>
+              <td class="p-2">${ticket.assigned_to || 'Sin asignar'}</td>
+              <td class="p-2">${new Date(ticket.created_at).toLocaleString()}</td>
+              <td class="p-2">
+                <button class="save-btn bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600" data-id="${doc.id}">
+                  <i class="fas fa-save"></i> Guardar
+                </button>
+              </td>
+            </tr>
+          `;
+          ticketList.innerHTML += row;
+        });
+
+        // Agregar eventos a los botones de guardar
+        document.querySelectorAll('.save-btn').forEach((button) => {
+          button.addEventListener('click', async (e) => {
+            const ticketId = e.target.getAttribute('data-id');
+            const status = document.querySelector(`.status-select[data-id="${ticketId}"]`).value;
+            const priority = document.querySelector(`.priority-select[data-id="${ticketId}"]`).value;
+
+            try {
+              await updateDoc(doc(db, 'tickets', ticketId), {
+                status: status,
+                priority: priority,
+                updated_at: new Date().toISOString()
+              });
+              alert('Ticket actualizado correctamente');
+            } catch (error) {
+              alert(`Error al actualizar el ticket: ${error.message}`);
+            }
+          });
+        });
+      });
+    };
+
+    // Verificar Autenticación y Cargar Tickets
+    auth.onAuthStateChanged((user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+      } else {
+        loadTickets();
+      }
+    });
+  </script>
+</body>
+</html>
