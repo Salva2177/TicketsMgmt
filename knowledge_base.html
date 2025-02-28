@@ -92,12 +92,10 @@
     logoutBtn.addEventListener('click', () => {
       signOut(auth)
         .then(() => {
-          console.log('Sesión cerrada correctamente.'); // Depuración
           alert('Sesión cerrada correctamente');
           window.location.href = 'index.html';
         })
         .catch((error) => {
-          console.error('Error al cerrar sesión:', error); // Depuración
           alert(`Error al cerrar sesión: ${error.message}`);
         });
     });
@@ -126,10 +124,8 @@
         const knowledgeList = document.getElementById('knowledgeList');
         knowledgeList.innerHTML = ''; // Limpiar lista antes de cargar
 
-        console.log('Número de artículos cargados:', snapshot.size); // Depuración
         snapshot.forEach((doc) => {
           const article = doc.data();
-          console.log('Artículo cargado:', article); // Depuración
           const card = `
             <div class="bg-white p-6 rounded-lg shadow-md">
               <h3 class="text-xl font-bold mb-2">${article.title}</h3>
@@ -161,7 +157,7 @@
         });
         console.log('Artículo agregado correctamente.'); // Depuración
         alert('Artículo agregado correctamente');
-        addArticleForm.reset();
+        addArticleForm.reset(); // Limpiar el formulario
       } catch (error) {
         console.error('Error al agregar el artículo:', error); // Depuración
         alert(`Error al agregar el artículo: ${error.message}`);
