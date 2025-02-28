@@ -59,6 +59,7 @@
     // Importar funciones de Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
 
     // Configuración de Firebase
     const firebaseConfig = {
@@ -74,6 +75,7 @@
     // Inicializar Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app);
 
     // Lógica de Inicio de Sesión
     const loginForm = document.getElementById('loginForm').querySelector('form');
@@ -96,22 +98,31 @@
 
     // Lógica de Registro
     const registerForm = document.getElementById('registerForm').querySelector('form');
-    registerForm.addEventListener('submit', (e) => {
+    registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('regEmail').value;
       const password = document.getElementById('regPassword').value;
       const role = document.getElementById('regRole').value;
 
-      createUserWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-          const user = userCredential.user;
-          alert(`Usuario registrado: ${user.email}`);
-          // Redirigir según el rol
-          window.location.href = role === 'admin' ? 'admin.html' : 'client.html';
-        })
-        .catch((error) => {
-          alert(`Error: ${error.message}`);
+      try {
+        // Crear usuario en Firebase Authentication
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Guardar información adicional en Firestore (colección "users")
+        await addDoc(collection(db, 'users'), {
+          uid: user.uid,
+          email: email,
+          role: role,
+          createdAt: new Date().toISOString()
         });
+
+        alert(`Usuario registrado: ${user.email}`);
+        // Redirigir según el rol
+        window.location.href = role === 'admin' ? 'admin.html' : 'client.html';
+      } catch (error) {
+        alert(`Error: ${error.message}`);
+      }
     });
 
     // Alternar entre Inicio de Sesión y Registro
