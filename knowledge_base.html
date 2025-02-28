@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Base de Conocimiento - Gestión de Tickets</title>
+  <!-- Tailwind CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- FontAwesome CDN -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+  <!-- Menú de Navegación -->
+  <nav class="bg-blue-600 p-4 text-white">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold">Gestión de Tickets</h1>
+      <button id="logoutBtn" class="bg-red-500 px-4 py-2 rounded hover:bg-red-600">
+        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+      </button>
+    </div>
+  </nav>
+
+  <!-- Contenido Principal -->
+  <div class="container mx-auto p-4">
+    <!-- Barra de Búsqueda y Filtros -->
+    <section class="mb-8">
+      <h2 class="text-2xl font-bold mb-4">Base de Conocimiento</h2>
+      <div class="flex flex-col md:flex-row gap-4 mb-6">
+        <input type="text" id="searchInput" placeholder="Buscar artículos..." class="w-full md:w-1/2 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <select id="categoryFilter" class="w-full md:w-1/4 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Todas las categorías</option>
+          <option value="Soporte Técnico">Soporte Técnico</option>
+          <option value="Facturación">Facturación</option>
+          <option value="Otros">Otros</option>
+        </select>
+        <button id="searchButton" class="w-full md:w-1/4 bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+          <i class="fas fa-search"></i> Buscar
+        </button>
+      </div>
+    </section>
+
+    <!-- Lista de Artículos -->
+    <section>
+      <div id="knowledgeList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Artículos cargados dinámicamente -->
+      </div>
+    </section>
+
+    <!-- Formulario para Agregar Artículos (Solo para Administradores) -->
+    <section id="addArticleSection" class="mt-8 hidden">
+      <h2 class="text-2xl font-bold mb-4">Agregar Artículo</h2>
+      <form id="addArticleForm" class="bg-white p-6 rounded-lg shadow-md">
+        <input type="text" id="articleTitle" placeholder="Título" class="w-full p-2 border rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <textarea id="articleContent" placeholder="Contenido" class="w-full p-2 border rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        <select id="articleCategory" class="w-full p-2 border rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="Soporte Técnico">Soporte Técnico</option>
+          <option value="Facturación">Facturación</option>
+          <option value="Otros">Otros</option>
+        </select>
+        <button type="submit" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">
+          <i class="fas fa-plus"></i> Agregar Artículo
+        </button>
+      </form>
+    </section>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Importar funciones de Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+    import { getFirestore, collection, query, where, onSnapshot, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBNXwzm9kMqkteMCiGUrHqm32U07yvDCBc",
+      authDomain: "sistema-de-tickets-61267.firebaseapp.com",
+      projectId: "sistema-de-tickets-61267",
+      storageBucket: "sistema-de-tickets-61267.appspot.com",
+      messagingSenderId: "547373785649",
+      appId: "1:547373785649:web:92839bcbed9e20fd17eb10",
+      measurementId: "G-FLD23C4M46"
+    };
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Cerrar Sesión
+    const logoutBtn = document.getElementById('logoutBtn');
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth)
+        .then(() => {
+          alert('Sesión cerrada correctamente');
+          window.location.href = 'index.html';
+        })
+        .catch((error) => {
+          alert(`Error al cerrar sesión: ${error.message}`);
+        });
+    });
+
+    // Cargar Artículos de la Base de Conocimiento
+    const loadKnowledgeBase = (searchTerm = '', category = '') => {
+      let q;
+      if (searchTerm && category) {
+        q = query(collection(db, 'knowledge_base'), 
+          where('title', '>=', searchTerm),
+          where('title', '<=', searchTerm + '\uf8ff'),
+          where('category', '==', category)
+        );
+      } else if (searchTerm) {
+        q = query(collection(db, 'knowledge_base'), 
+          where('title', '>=', searchTerm),
+          where('title', '<=', searchTerm + '\uf8ff')
+        );
+      } else if (category) {
+        q = query(collection(db, 'knowledge_base'), where('category', '==', category));
+      } else {
+        q = query(collection(db, 'knowledge_base'));
+      }
+
+      onSnapshot(q, (snapshot) => {
+        const knowledgeList = document.getElementById('knowledgeList');
+        knowledgeList.innerHTML = ''; // Limpiar lista antes de cargar
+
+        snapshot.forEach((doc) => {
+          const article = doc.data();
+          const card = `
+            <div class="bg-white p-6 rounded-lg shadow-md">
+              <h3 class="text-xl font-bold mb-2">${article.title}</h3>
+              <p class="text-gray-600 mb-4">${article.content.substring(0, 100)}...</p>
+              <span class="bg-blue-100 text-blue-800 text-sm font-medium px-2 py-1 rounded">${article.category}</span>
+            </div>
+          `;
+          knowledgeList.innerHTML += card;
+        });
+      });
+    };
+
+    // Agregar Artículo (Solo para Administradores)
+    const addArticleForm = document.getElementById('addArticleForm');
+    addArticleForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('articleTitle').value;
+      const content = document.getElementById('articleContent').value;
+      const category = document.getElementById('articleCategory').value;
+
+      try {
+        await addDoc(collection(db, 'knowledge_base'), {
+          title: title,
+          content: content,
+          category: category,
+          created_at: new Date().toISOString()
+        });
+        alert('Artículo agregado correctamente');
+        addArticleForm.reset();
+      } catch (error) {
+        alert(`Error al agregar el artículo: ${error.message}`);
+      }
+    });
+
+    // Mostrar/Ocultar Formulario de Agregar Artículo (Solo para Administradores)
+    const checkUserRole = async (uid) => {
+      const userDoc = await getDoc(doc(db, 'users', uid));
+      if (userDoc.exists() && userDoc.data().role === 'admin') {
+        document.getElementById('addArticleSection').classList.remove('hidden');
+      }
+    };
+
+    // Cargar Artículos al Iniciar la Página
+    auth.onAuthStateChanged((user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+      } else {
+        loadKnowledgeBase();
+        checkUserRole(user.uid);
+      }
+    });
+
+    // Buscar Artículos
+    const searchButton = document.getElementById('searchButton');
+    searchButton.addEventListener('click', () => {
+      const searchTerm = document.getElementById('searchInput').value;
+      const category = document.getElementById('categoryFilter').value;
+      loadKnowledgeBase(searchTerm, category);
+    });
+  </script>
+</body>
+</html>
