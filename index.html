@@ -96,34 +96,34 @@
         });
     });
 
-    // Lógica de Registro
-    const registerForm = document.getElementById('registerForm').querySelector('form');
-    registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('regEmail').value;
-      const password = document.getElementById('regPassword').value;
-      const role = document.getElementById('regRole').value;
+// Lógica de Registro
+const registerForm = document.getElementById('registerForm').querySelector('form');
+registerForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('regEmail').value;
+  const password = document.getElementById('regPassword').value;
+  const role = document.getElementById('regRole').value;
 
-      try {
-        // Crear usuario en Firebase Authentication
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
+  try {
+    // Crear usuario en Firebase Authentication
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
 
-        // Guardar información adicional en Firestore (colección "users")
-        await addDoc(collection(db, 'users'), {
-          uid: user.uid,
-          email: email,
-          role: role,
-          createdAt: new Date().toISOString()
-        });
-
-        alert(`Usuario registrado: ${user.email}`);
-        // Redirigir según el rol
-        window.location.href = role === 'admin' ? 'admin.html' : 'client.html';
-      } catch (error) {
-        alert(`Error: ${error.message}`);
-      }
+    // Guardar información adicional en Firestore (colección "users")
+    await addDoc(collection(db, 'users'), {
+      uid: user.uid,          // ID único del usuario
+      email: email,           // Email del usuario
+      role: role,             // Rol (cliente o admin)
+      createdAt: new Date().toISOString()  // Fecha de creación
     });
+
+    alert(`Usuario registrado: ${user.email}`);
+    // Redirigir según el rol
+    window.location.href = role === 'admin' ? 'admin.html' : 'client.html';
+  } catch (error) {
+    alert(`Error: ${error.message}`);
+  }
+});
 
     // Alternar entre Inicio de Sesión y Registro
     document.getElementById('showRegister').addEventListener('click', () => {
