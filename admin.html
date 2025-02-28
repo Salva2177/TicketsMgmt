@@ -108,7 +108,7 @@
 
     // Cargar Tickets para Administradores
     const loadTickets = () => {
-      const q = query(collection(db, 'tickets'));
+      const q = query(collection(db, 'tickets')); // Consulta todos los tickets
       onSnapshot(q, (snapshot) => {
         const ticketList = document.getElementById('adminTicketList').querySelector('tbody');
         ticketList.innerHTML = ''; // Limpiar lista antes de cargar
