@@ -77,16 +77,33 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    // Auto-rellenar el formulario de inicio de sesión
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+
+    // Recuperar las credenciales guardadas en localStorage
+    const savedEmail = localStorage.getItem('email');
+    const savedPassword = localStorage.getItem('password');
+
+    if (savedEmail && savedPassword) {
+      emailInput.value = savedEmail;
+      passwordInput.value = savedPassword;
+    }
+
     // Lógica de Inicio de Sesión
     const loginForm = document.getElementById('loginForm').querySelector('form');
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+      const email = emailInput.value;
+      const password = passwordInput.value;
 
       try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
+
+        // Guardar las credenciales en localStorage
+        localStorage.setItem('email', email);
+        localStorage.setItem('password', password);
 
         // Obtener el rol del usuario desde Firestore
         const q = query(collection(db, 'users'), where('uid', '==', user.uid));
