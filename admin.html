@@ -95,10 +95,15 @@
     const db = getFirestore(app);
 
     // Cerrar Sesión
-    document.getElementById('logoutBtn').addEventListener('click', () => {
+    const logoutBtn = document.getElementById('logoutBtn');
+    logoutBtn.addEventListener('click', () => {
       signOut(auth)
         .then(() => {
           alert('Sesión cerrada correctamente');
+          // Borrar credenciales de localStorage (si se usan)
+          localStorage.removeItem('email');
+          localStorage.removeItem('password');
+          // Redirigir a la página de inicio
           window.location.href = 'index.html';
         })
         .catch((error) => {
